@@ -1,0 +1,105 @@
+<head>
+	<title> Game </title>
+	<script>
+		var posX = 0 
+		var posY = 0
+		var accelaracao = 6;
+		var dirX = 0;
+		var dirY = 0;
+		var accX = 0;
+		var accY = 0;
+
+		var walk = false;
+		
+		function main(){
+			posX = 600 / 2 - 15
+			posY = 600 / 2 - 15
+
+			let screen = document.getElementById("game");
+			let context = screen.getContext("2d");
+
+			setInterval(draw, 10, context)
+			addEventListener("keypress", keyPress, false)
+			addEventListener("keyup", keyUp, false)
+		}
+
+		function draw(context){
+			if (!walk){
+				dirX *= 0.991;
+				dirY *= 0.991;
+			}
+
+			dirX += accX * accelaracao / 100;
+			dirY += accY * accelaracao / 100;
+
+			posX += dirX;
+			posY += dirY;
+
+			clear(context);
+			drawPlayer(context);
+
+
+			if (posX >= 600){
+				posX = 0;
+			}
+
+			if (posX < 0){
+				posX = 600;
+			}	
+			
+		}
+
+		function keyUp(event){
+			if (event.key == "a"){
+				accX = 0; 
+			}
+			
+			if (event.key == "d"){
+				accX = 0;
+			}
+
+			if (event.key == "w"){
+				accY = 0;
+			}
+			
+			if (event.key == "s"){
+				accY = 0;
+			}
+		}
+
+		function keyPress(event){
+			if (event.key == "a"){
+				accX = -1; 
+			}
+			
+			if (event.key == "d"){
+				accX = 1;
+			}
+
+			if (event.key == "w"){
+				accY = -1;
+			}
+			
+			if (event.key == "s"){
+				accY = 1;
+			}
+		}
+
+		function drawPlayer(c){
+			fill(c, "red", posX, posY, 30, 30)
+		}
+
+		function fill(c, cor, x, y, w, h){
+			c.fillStyle = cor;
+			c.fillRect(x, y, w, h);
+		}
+
+		function clear(context){
+			fill(context, "rgba(100, 100, 100, 25%)", 0, 0, 600, 600)
+		}
+	
+	</script>
+</head>
+<body onload="main()">
+	<canvas id="game" width="600" height="600"> </canvas>
+</body>
