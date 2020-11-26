@@ -1,41 +1,91 @@
 <head>
 	<title> Game </title>
 	<script>
+		function bullet (x, y, rot, s=10){
+			this.dy = Math.cos(rot / 360 * Math.PI *2);
+			this.dx = Math.sin(rot / 360 * Math.PI *2);
+			this.s = s;
+			this.rot = rot;
+			this.x = x + this.dx * 30;
+			this.y = y - this.dy * 30;
+			this.q = 400;
+
+			this.move = function(){
+				this.y -= this.dy * 2;
+				this.x += this.dx * 2;
+				this.q--;
+				return this.q > 0;
+			}
+			
+			this.mag = function(){
+				return Math.sqrt(this.dy ** 2  + this.dx ** 2)
+			}
+
+			this.hittest = function (x, y, w, h){
+				return this.x + this.s >= x &&
+					   this.x + this.s <= x + w &&
+					   this.y + this.s >= y &&
+					   this.y + this.s <= y + w;
+			}
+		}
 		var posX = 0 
 		var posY = 0
-		var accelaracao = 6;
+		var accelaracao = 1;
 		var dirX = 0;
 		var dirY = 0;
 		var accX = 0;
 		var accY = 0;
+		var rot  = 0;
+		var accRot = 0;
+		var bullets = [];
+		var stars = [];
+		var vidas = 3;
+		var smooth = [0, 0];
 
 		var walk = false;
 		
 		function main(){
-			posX = 600 / 2 - 15
-			posY = 600 / 2 - 15
-
 			let screen = document.getElementById("game");
 			let context = screen.getContext("2d");
+
+			genStars();
 
 			setInterval(draw, 10, context)
 			addEventListener("keypress", keyPress, false)
 			addEventListener("keyup", keyUp, false)
 		}
 
+		function genStars(){
+			for(var i = 0; i < 700; i++){
+				stars.push([Math.random() * 620, Math.random() * 620, Math.random() *2, 1])
+			}
+		}
+
 		function draw(context){
 			if (!walk){
-				dirX *= 0.991;
-				dirY *= 0.991;
+				dirX *= 0.998;
+				dirY *= 0.998	;
 			}
 
-			dirX += accX * accelaracao / 100;
-			dirY += accY * accelaracao / 100;
+			rot += accRot;
+			dirX += accY * -angleX() * accelaracao / 100;
+			dirY += accY * angleY() * accelaracao / 100;
 
+			smooth[0] += dirX
+			smooth[1] += dirY
+
+			smooth[0] = smooth[0] - (smooth[0]) * 0.24
+			smooth[1] = smooth[1] - (smooth[1]) * 0.24
+
+			
+
+		
 			posX += dirX;
 			posY += dirY;
 
 			clear(context);
+			drawStars(context);
+			drawBullets(context);
 			drawPlayer(context);
 
 
@@ -47,15 +97,95 @@
 				posX = 600;
 			}	
 			
+			if (posY >= 600){
+				posY = 0;
+			}
+
+			if (posY < 0){
+				posY = 600;
+			}
+		}
+
+		function drawBullets(c){
+			var tmp = [];
+			bullets.forEach(function (b, index){
+				c.save()
+				c.fillStyle = "white"
+				c.translate(b.x, b.y)
+				c.rotate(b.rot / 360 * Math.PI * 2)
+				c.beginPath()
+				c.lineTo(-b.s / 2, b.s / 2);
+				c.lineTo(0, -b.s / 2);
+				c.lineTo(b.s / 2, b.s / 2)
+				c.fill()
+				c.restore()
+
+				var atingido = false
+				if (b.move()){
+					tmp.push(b);
+				}
+
+				if(atingido && vidas > 0){
+					vidas--;
+
+					if (vidas <= 0){
+						console.log("Morreu")
+					}
+				}
+			})
+
+			bullets = tmp;
+		}
+
+		function drawStars(c){
+			stars.forEach(function(star){
+				star[3] += parseInt(Math.random() + 0.2)
+				if (star[3] > 10){
+					c.fillStyle = "grey"
+					if (star[3] > 15)
+						star[3] = 0
+				}else{
+					c.fillStyle = "white";
+				}
+			
+				c.beginPath()
+				c.arc(star[0], star[1], star[2], 0, Math.PI * 2)
+				star[1] += -dirY
+				star[0] += -dirX
+
+				c.fill()
+
+				if(star[1] > 620){
+					star[1] = -Math.random() * 20
+				}else if(star[1] < -20){
+					star[1] = 600 + Math.random() * 20
+				}
+
+				if(star[0] > 620){
+					star[0] = -Math.random() * 20
+				}else if(star[0] < -20){
+					star[0] = 600 + Math.random() * 20
+				}
+			})
+		}
+
+		function playerPos(){
+			return [600 / 2 - 15 + smooth[0], 600 / 2 - 15 + smooth[1]]
 		}
 
 		function keyUp(event){
+			if (vidas == 0){
+				accY = 0; 
+				accRot = 0;
+				return
+			}
+
 			if (event.key == "a"){
-				accX = 0; 
+				accRot = 0;
 			}
 			
 			if (event.key == "d"){
-				accX = 0;
+				accRot = 0;
 			}
 
 			if (event.key == "w"){
@@ -68,12 +198,19 @@
 		}
 
 		function keyPress(event){
+			if (vidas == 0){
+				return
+			}
+			
+			console.log(event)
 			if (event.key == "a"){
-				accX = -1; 
+				//accX = -1; 
+				accRot = -1;
 			}
 			
 			if (event.key == "d"){
-				accX = 1;
+				//accX = 1;
+				accRot = 1;
 			}
 
 			if (event.key == "w"){
@@ -81,12 +218,44 @@
 			}
 			
 			if (event.key == "s"){
-				accY = 1;
+				accY = 0.2;
+			}
+
+			if (event.code == "Space"){
+				bullets.push(new bullet(playerPos()[0], playerPos()[1], rot))
 			}
 		}
 
+		function angleX(){
+			return Math.sin(rot / 360 * Math.PI * 2)
+		}
+
+		function angleY(){
+			return Math.cos(rot / 360 * Math.PI * 2)
+		}
+
 		function drawPlayer(c){
-			fill(c, "red", posX, posY, 30, 30)
+			c.save()
+			c.translate(600 / 2 - 15 + smooth[0], 600/2-15 + smooth[1]);
+			c.rotate((rot / 360) * (Math.PI * 2))
+
+			if (vidas > 0){
+				c.fillStyle = "red";
+			}else{
+				c.fillStyle = "black";
+			}
+			c.beginPath()
+			c.lineTo(-15, 15)
+			c.lineTo(0, -15)
+			c.lineTo(15, 15)
+			c.fill()
+			
+			c.restore()
+
+			c.strokeStyle = "black"
+			c.beginPath()
+			c.lineTo(angleX(), angleY());
+			c.stroke()
 		}
 
 		function fill(c, cor, x, y, w, h){
@@ -95,9 +264,8 @@
 		}
 
 		function clear(context){
-			fill(context, "rgba(100, 100, 100, 25%)", 0, 0, 600, 600)
+			fill(context, "rgba(0, 0, 0, 50%)", 0, 0, 600, 600)
 		}
-	
 	</script>
 </head>
 <body onload="main()">
